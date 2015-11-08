@@ -45,7 +45,7 @@ post '/' do
   if n.save
     redirect '/', flash.sweep[:notice] => 'Note created successfully.'
   else
-    redirect '/', flash[:error] = "Can't find that note"
+    redirect '/', flash[:error] = "Can't find that note."
   end
 end
 
@@ -57,7 +57,11 @@ end
 get '/:id' do
   @note = Note.get params[:id]
   @title = "Edit note ##{params[:id]}"
-  erb :edit
+  if @note
+    erb :edit
+  else
+    redirect "/", flash[:error] = "Can't find that note."
+  end
 end
 
 put '/:id' do
@@ -65,30 +69,42 @@ put '/:id' do
   n.content = params[:content]
   n.complete = params[:complete] ? 1 : 0
   n.updated_at = Time.now
-  n.save
-  redirect "/", flash[:error] = "Can't find that note"
+  if n.save
+    redirect "/", flash.sweep[:notice] = "Note updated successfully"
+  else
+    redirect "/", flash[:error] = "Can't find that note."
+  end
 end
 
 get '/:id/delete' do
   @note = Note.get params[:id]
   @title = "Confirm deletion of note ##{params[:id]}"
-  erb :delete
+  if @note
+    erb :delete
+  else
+    redirect "/", flash[:error] = "Can't find that note."
+  end
 end
 
 delete '/:id' do
   n = Note.get params[:id]
-  n.destroy
-  redirect '/', flash[:error] = "Can't find that note"
+  if n.destroy
+    redirect '/', flash.sweep[:notice] = "Note deleted successfully"
+  else
+    redirect '/', flash[:error] = "Error deleting note."
+  end
 end
 
 get '/:id/complete' do
   n = Note.get params[:id]
+  unless n
+    redirect "/", flash[:error] = "Can't find that note."
+  end
   n.complete = n.complete ? 0 : 1
   n.updated_at = Time.now
-  n.save
-  redirect "/", flash[:error] = "Can't find that note"
+  if n.save
+    redirect '/', flash.sweep[:notice] = "Note marked as complete"
+  else
+    redirect "/", flash[:error] = "Can't find that note."
+  end
 end
-
-# redirect '/'
-
-# end
