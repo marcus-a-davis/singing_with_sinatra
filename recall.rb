@@ -1,6 +1,14 @@
 require 'rubygems'
 require 'sinatra'
 require 'data_mapper'
+require 'sinatra/flash'
+require 'sinatra/redirect_with_flash'
+
+enable :sessions
+# use Sinatra::Flash, :sweep => true
+
+SITE_TITLE = "Recall"
+SITE_DESCRIPTION = "'cause you're too busy to remember"
 
 DataMapper::setup(:default, "sqlite3://#{Dir.pwd}/recall.db")
 
@@ -15,10 +23,17 @@ end
 
 DataMapper.finalize.auto_upgrade!
 
+helpers do
+  include Rack::Utils
+  alias_method :h, :escape_html
+end
 
-get '/'  do
+get '/' do
   @notes = Note.all :order => :id.desc
   @title = 'All Notes'
+  if @notes.empty?
+      flash[:error] = 'No notes found. Add your first below.'
+  end
   erb :home
 end
 
@@ -27,8 +42,16 @@ post '/' do
   n.content = params[:content]
   n.created_at = Time.now
   n.updated_at = Time.now
-  n.save
-  redirect '/'
+  if n.save
+    redirect '/', flash.sweep[:notice] => 'Note created successfully.'
+  else
+    redirect '/', flash[:error] = "Can't find that note"
+  end
+end
+
+get '/rss.xml' do
+  @notes = Note.all :order => :id.desc
+  builder :rss
 end
 
 get '/:id' do
@@ -43,7 +66,7 @@ put '/:id' do
   n.complete = params[:complete] ? 1 : 0
   n.updated_at = Time.now
   n.save
-  redirect "/"
+  redirect "/", flash[:error] = "Can't find that note"
 end
 
 get '/:id/delete' do
@@ -55,7 +78,7 @@ end
 delete '/:id' do
   n = Note.get params[:id]
   n.destroy
-  redirect '/'
+  redirect '/', flash[:error] = "Can't find that note"
 end
 
 get '/:id/complete' do
@@ -63,10 +86,9 @@ get '/:id/complete' do
   n.complete = n.complete ? 0 : 1
   n.updated_at = Time.now
   n.save
-  redirect "/"
+  redirect "/", flash[:error] = "Can't find that note"
 end
 
+# redirect '/'
 
-
-
-
+# end
